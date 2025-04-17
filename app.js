@@ -12,7 +12,6 @@ const msalConfig = {
     clientId: process.env.CLIENT_ID,
     authority: `https://login.microsoftonline.com/${process.env.TENANT_ID}`,
     clientSecret: process.env.CLIENT_SECRET,
-    protocolMode: "AAD"
   }
 };
 
@@ -51,13 +50,16 @@ app.get('/redirect', (req, res) => {
     code: req.query.code,
     scopes: ["user.read", "openid", "profile", "email"],
     redirectUri: `http://localhost:${port}/redirect`,
-    tokenEndpoint: `https://login.microsoftonline.com/${process.env.TENANT_ID}/oauth2/v2.0/token`
+    // tokenEndpoint: `https://login.microsoftonline.com/${process.env.TENANT_ID}/oauth2/v2.0/token`
   };
 
   cca.acquireTokenByCode(tokenRequest)
     .then((response) => {
       // Decode the access token
-      const decodedToken = decodeToken(response.accessToken);
+      // const decodedToken = decodeToken(response.accessToken);
+
+      // Decode the ID token
+      const decodedToken = decodeToken(response.idToken);
       
       // Check for group claims
       const groups = decodedToken.groups || [];

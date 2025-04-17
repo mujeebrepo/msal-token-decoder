@@ -1,12 +1,13 @@
 # MSAL Token Decoder for Entra ID Groups
 
-A Node.js application that authenticates users with Microsoft Entra ID (formerly Azure AD) and decodes the access token to verify if group claims are being properly transmitted.
+A Node.js application that authenticates users with Microsoft Entra ID (formerly Azure AD) and decodes the ID token to verify if group claims are being properly transmitted.
 
 ## Features
 
 - Authenticate users with Microsoft Entra ID
 - Decode JWT access tokens to inspect claims
 - Specifically check for and display group claims in the token
+- Fetch group claims as either GroupIDs or GroupNames (for Cloud/Entra Native Groups)
 - Simple web interface to view decoded token data
 
 ## Prerequisites
@@ -52,7 +53,23 @@ msal-token-decoder/
    - Object ID
    - SIDs (Security Identifiers)
    - Display names
-5. Make sure to include the claim in both Access and ID tokens
+5. Make sure to include the claim in both Access and ID 
+6. By default with the above configuration GroupIDs will be returned in Group Claims of ID token.To retrieve Cloud/Entra Native Group Names in the Claim instead of Group ID modify the App Manifest File
+   - Goto App registrations -> (Application) -> Manage -> Manifest
+   - Search for "optionalClaims" property and replace the "idToken" property as follows
+   ```
+   "idtoken": [
+        {
+            "additionalProperties" : [
+                "cloud_displayname"
+            ],
+            "essential": false,
+            "name": "groups",
+            "source": null
+        }
+   ]
+   ```   
+
 
 ### 4. Get Application Credentials
 
