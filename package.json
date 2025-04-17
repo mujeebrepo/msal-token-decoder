@@ -1,0 +1,20 @@
+{
+  "name": "msal-token-decoder",
+  "version": "1.0.0",
+  "description": "Node.js application to decode MSAL access tokens and check for group claims",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js"
+  },
+  "dependencies": {
+    "@azure/msal-node": "^1.18.0",
+    "dotenv": "^16.3.1",
+    "ejs": "^3.1.9",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
