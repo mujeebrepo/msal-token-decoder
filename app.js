@@ -6,24 +6,13 @@ const jwt = require('jsonwebtoken');
 const app = express();
 const port = process.env.PORT || 3000;
 
-// MSAL configuration for v2.0 endpoints
+// MSAL configuration
 const msalConfig = {
   auth: {
     clientId: process.env.CLIENT_ID,
-    // Explicitly specify v2.0 in the authority URL
-    authority: `https://login.microsoftonline.com/${process.env.TENANT_ID}/v2.0`,
+    authority: `https://login.microsoftonline.com/${process.env.TENANT_ID}`,
     clientSecret: process.env.CLIENT_SECRET,
-    // Force MSAL to use v2.0 endpoints
-    protocolMode: "AAD" // AAD v2.0
-  },
-  system: {
-    loggerOptions: {
-      loggerCallback(loglevel, message, containsPii) {
-        console.log(message);
-      },
-      piiLoggingEnabled: false,
-      logLevel: msal.LogLevel.Verbose,
-    }
+    protocolMode: "AAD"
   }
 };
 
@@ -42,7 +31,7 @@ app.get('/', (req, res) => {
 app.get('/login', (req, res) => {
   // Generate the auth code URL
   const authCodeUrlParameters = {
-    scopes: ["user.read", "openid", "profile", "email", "GroupMember.Read.All"],
+    scopes: ["user.read", "openid", "profile", "email"],
     redirectUri: `http://localhost:${port}/redirect`
   };
 
@@ -60,59 +49,50 @@ app.get('/redirect', (req, res) => {
   // Exchange auth code for tokens
   const tokenRequest = {
     code: req.query.code,
-    scopes: ["user.read", "openid", "profile", "email", "GroupMember.Read.All"],
-    redirectUri: `http://localhost:${port}/redirect`
+    scopes: ["user.read", "openid", "profile", "email"],
+    redirectUri: `http://localhost:${port}/redirect`,
+    tokenEndpoint: `https://login.microsoftonline.com/${process.env.TENANT_ID}/oauth2/v2.0/token`
   };
 
   cca.acquireTokenByCode(tokenRequest)
     .then((response) => {
-      // Log token information for debugging
-      console.log("Token acquired successfully");
+      // Decode the access token
+      const decodedToken = decodeToken(response.accessToken);
       
-      // Decode the tokens
-      const decodedIdToken = jwt.decode(response.idToken, { complete: true });
-      const decodedAccessToken = jwt.decode(response.accessToken, { complete: true });
-      
-      // Extract user information
-      const user = {
-        name: response.account.name,
-        username: response.account.username
-      };
-      
-      // Check for group claims in both tokens
-      const groupsFromIdToken = decodedIdToken.payload.groups || [];
-      const groupsFromAccessToken = decodedAccessToken.payload.groups || [];
-      
-      // Combine groups from both tokens (removing duplicates)
-      const allGroups = [...new Set([...groupsFromIdToken, ...groupsFromAccessToken])];
-      const hasGroupClaim = allGroups.length > 0;
-      
-      // Log token details for debugging
-      console.log('Access Token Version:', decodedAccessToken.payload.ver);
-      console.log('ID Token Version:', decodedIdToken.payload.ver);
-      console.log('Groups in ID token:', groupsFromIdToken.length);
-      console.log('Groups in Access token:', groupsFromAccessToken.length);
-      
+      // Check for group claims
+      const groups = decodedToken.groups || [];
+      const hasGroupClaim = Array.isArray(groups) && groups.length > 0;
+
       res.render('profile', {
         isAuthenticated: true,
-        user: user,
+        user: response.account,
         token: {
           accessToken: response.accessToken,
           idToken: response.idToken,
-          decodedAccessToken: JSON.stringify(decodedAccessToken.payload, null, 2),
-          decodedIdToken: JSON.stringify(decodedIdToken.payload, null, 2)
+          decoded: JSON.stringify(decodedToken, null, 2)
         },
         hasGroupClaim: hasGroupClaim,
-        groups: allGroups
+        groups: groups
       });
     })
     .catch((error) => {
-      console.log("Error acquiring token:", error);
+      console.log(error);
       res.status(500).send(error);
     });
 });
 
+// Function to decode JWT token
+function decodeToken(token) {
+  try {
+    // Note: This only decodes the token without verification
+    const decoded = jwt.decode(token, { complete: true });
+    return decoded.payload;
+  } catch (error) {
+    console.error('Error decoding token:', error);
+    return { error: 'Failed to decode token' };
+  }
+}
+
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
-  console.log(`Using MSAL with v2.0 endpoints for token acquisition`);
 });
